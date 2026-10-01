@@ -1,4 +1,4 @@
-import { useAuth } from '@clerk/react'
+import { useClerk, useUser } from '@clerk/react'
 import {
     useLocation,
     useNavigate,
@@ -15,7 +15,8 @@ import { useProfile } from '../../pages/account/useProfile'
 import type { AppearanceMode } from '../../pages/account/Profile'
 
 function AccountMenu() {
-    const { signOut } = useAuth()
+    const clerk = useClerk()
+    const { user } = useUser()
     const location = useLocation()
     const navigate = useNavigate()
     const { updateProfile } = useProfile()
@@ -39,22 +40,20 @@ function AccountMenu() {
                     ? 'LIGHT'
                     : 'DARK'
 
-        await updateProfile({
-            appearanceMode,
-        })
+        await updateProfile({ appearanceMode })
     }
 
+
     return (
-        <SharedAccountMenu
-            onProfile={() =>
-                navigateToAccount('/account/profile')
-            }
-            onApps={() =>
-                navigateToAccount('/account/apps')
-            }
-            onAppearanceChange={saveAppearance}
-            onSignOut={() => signOut()}
-        />
+            <SharedAccountMenu
+                displayName={user?.fullName ?? undefined}
+                email={user?.primaryEmailAddress?.emailAddress ?? undefined}
+                imageUrl={user?.hasImage ? user.imageUrl : undefined}
+                onProfile={() => navigateToAccount('/account/profile')}
+                onApps={() => navigateToAccount('/account/apps')}
+                onAppearanceChange={saveAppearance}
+                onSignOut={() => { void clerk.signOut() }}
+            />
     )
 }
 

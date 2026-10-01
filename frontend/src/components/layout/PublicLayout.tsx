@@ -4,7 +4,7 @@ import PublicHeader from './PublicHeader'
 
 function PublicLayout() {
     return (
-        <div className="min-vh-100 d-flex flex-column">
+        <div className="aw-theme-platform min-vh-100 d-flex flex-column">
             <PublicHeader />
 
             <main className="flex-grow-1">

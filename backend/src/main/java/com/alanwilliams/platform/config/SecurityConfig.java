@@ -48,8 +48,12 @@ public class SecurityConfig {
         configuration.setAllowedOrigins(List.of(
                 "http://localhost:5174",
                 "http://192.168.1.100:5174",
+                "http://localhost:5173",
+                "http://192.168.1.100:5173",
                 "https://test.alanwilliams.app",
-                "https://alanwilliams.app"
+                "https://agenda-test.alanwilliams.app",
+                "https://alanwilliams.app",
+                "https://agenda.alanwilliams.app"
         ));
 
         configuration.setAllowedMethods(List.of(

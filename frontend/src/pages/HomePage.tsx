@@ -59,7 +59,7 @@ const appDetails: Record<
 }
 
 function HomePage() {
-    const { isLoaded, isSignedIn } = useAuth()
+    const { isLoaded, isSignedIn, } = useAuth()
     const { openSignIn } = useClerk()
 
     const [apps, setApps] = useState<CatalogApp[]>([])
@@ -191,7 +191,7 @@ function HomePage() {
                                     className="btn aw-btn-accent btn-lg"
                                     onClick={() => openSignIn()}
                                 >
-                                    Sign In / Sign Up
+                                    Get Started
                                 </button>
                             )}
                         </div>

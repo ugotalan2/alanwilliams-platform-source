@@ -36,19 +36,30 @@ function OnboardingGate({ children }: OnboardingGateProps) {
     const { preference } = useTheme()
 
     const {
+        profile,
         loading,
         needsOnboarding,
         createProfile,
     } = useProfile()
 
+    const isExplicitOnboarding = window.location.pathname === '/onboarding'
     const returnTo = getValidatedPlatformReturnTo(
         new URLSearchParams(window.location.search).get('returnTo'),
     )
+    const onboardingUrl = window.location.href
 
     const [name, setName] = useState('')
     const [notificationEmail, setNotificationEmail] = useState('')
     const [submitting, setSubmitting] = useState(false)
     const [submitError, setSubmitError] = useState<string | null>(null)
+
+    useEffect(() => {
+        if (isLoaded && !isSignedIn && isExplicitOnboarding) {
+            clerk.openSignIn({
+                forceRedirectUrl: onboardingUrl,
+            })
+        }
+    }, [clerk, isExplicitOnboarding, isLoaded, isSignedIn, onboardingUrl])
 
     useEffect(() => {
         if (!user || !needsOnboarding) {
@@ -72,7 +83,7 @@ function OnboardingGate({ children }: OnboardingGateProps) {
         return <>{children}</>
     }
 
-    if (!isSignedIn || !needsOnboarding) {
+    if (!isSignedIn) {
         return <>{children}</>
     }
 
@@ -85,6 +96,90 @@ function OnboardingGate({ children }: OnboardingGateProps) {
 
     const clerkEmail =
         user?.primaryEmailAddress?.emailAddress ?? ''
+
+    // A downstream app explicitly requested onboarding, but this Platform
+    // Clerk session already belongs to an existing AlanWilliams Apps Person.
+    // Do not silently fall through to the Platform home page. Explain the
+    // mismatch and let the user sign out locally so /onboarding can present
+    // Clerk sign-in for the account they intended to use.
+    if (isExplicitOnboarding && !needsOnboarding && profile) {
+        async function handleUseDifferentAccount() {
+            setSubmitting(true)
+            setSubmitError(null)
+
+            try {
+                await clerk.signOut({
+                    redirectUrl: onboardingUrl,
+                })
+            } catch (err) {
+                setSubmitError(
+                    err instanceof Error
+                        ? err.message
+                        : 'Unable to sign out'
+                )
+                setSubmitting(false)
+            }
+        }
+
+        return (
+            <div className="container py-5">
+                <div className="row justify-content-center">
+                    <div className="col-12 col-md-8 col-lg-6">
+                        <div className="aw-card p-4">
+                            <h1 className="h3 mb-2">
+                                You're already signed in
+                            </h1>
+
+                            <p className="aw-text-muted mb-4">
+                                This account already has an AlanWilliams Apps profile.
+                                Did you mean to sign up as someone else?
+                            </p>
+
+                            <div className="p-3 rounded border mb-4">
+                                <div className="small aw-text-muted mb-1">
+                                    You're signed in as
+                                </div>
+
+                                {clerkName && (
+                                    <div className="fw-semibold">
+                                        {clerkName}
+                                    </div>
+                                )}
+
+                                {clerkEmail && (
+                                    <div>{clerkEmail}</div>
+                                )}
+                            </div>
+
+                            {submitError && (
+                                <div
+                                    className="alert alert-danger"
+                                    role="alert"
+                                >
+                                    {submitError}
+                                </div>
+                            )}
+
+                            <button
+                                type="button"
+                                className="btn aw-btn-accent w-100"
+                                onClick={() => void handleUseDifferentAccount()}
+                                disabled={submitting}
+                            >
+                                {submitting
+                                    ? 'Signing Out...'
+                                    : 'Sign In as Someone Else'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
+    if (!needsOnboarding) {
+        return <>{children}</>
+    }
 
     const timeZone =
         Intl.DateTimeFormat().resolvedOptions().timeZone
@@ -121,9 +216,15 @@ function OnboardingGate({ children }: OnboardingGateProps) {
         }
     }
 
-    async function handleSwitchAccount() {
+    async function handleSignOut() {
+        if (isExplicitOnboarding) {
+            await clerk.signOut({
+                redirectUrl: onboardingUrl,
+            })
+            return
+        }
+
         await clerk.signOut()
-        clerk.openSignIn()
     }
 
     return (
@@ -234,10 +335,10 @@ function OnboardingGate({ children }: OnboardingGateProps) {
                             <button
                                 type="button"
                                 className="btn btn-link"
-                                onClick={() => void handleSwitchAccount()}
+                                onClick={() => void handleSignOut()}
                                 disabled={submitting}
                             >
-                                Sign out / Switch account
+                                Sign out
                             </button>
                         </div>
                     </div>

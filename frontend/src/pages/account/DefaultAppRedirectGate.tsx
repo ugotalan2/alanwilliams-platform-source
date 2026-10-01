@@ -29,12 +29,30 @@ function DefaultAppRedirectGate({
     } = useProfile()
 
     const redirectStarted = useRef(false)
+    const wasSignedIn = useRef<boolean | undefined>(undefined)
+    const signedInOnPlatform = useRef(false)
+
+    useEffect(() => {
+        if (!isLoaded) {
+            return
+        }
+
+        const signedInNow = isSignedIn === true
+        const justSignedIn = wasSignedIn.current === false && signedInNow
+        wasSignedIn.current = signedInNow
+
+        if (justSignedIn) {
+            signedInOnPlatform.current = true
+            redirectStarted.current = false
+        }
+    }, [isLoaded, isSignedIn])
 
     useEffect(() => {
         if (
             redirectStarted.current
             || !isLoaded
             || !isSignedIn
+            || !signedInOnPlatform.current
             || loading
             || needsOnboarding
             || !profile
@@ -48,6 +66,7 @@ function DefaultAppRedirectGate({
         )
 
         if (returnTo) {
+            signedInOnPlatform.current = false
             redirectStarted.current = true
             window.location.replace(returnTo)
             return
@@ -87,6 +106,7 @@ function DefaultAppRedirectGate({
                     return
                 }
 
+                signedInOnPlatform.current = false
                 redirectStarted.current = true
 
                 window.location.replace(
